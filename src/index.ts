@@ -1,81 +1,67 @@
-import * as dotenv from 'dotenv';
-import { createObjectCsvWriter } from 'csv-writer';
-import { fetchPaymentOrders, FetchPaymentOrdersParams, extractACHTransferId } from './integrations/modern-treasury';
-import { fetchACHTransfer } from './integrations/increase';
-import { log, logDebug, logError } from './utils/logger';
+import * as dotenv from "dotenv";
+import { log, logError } from "./utils/logger";
+import { getIncreaseTransactions, getEmployerInfo } from "./services";
 
 dotenv.config();
 
+const defaultPayrollRunIds = ["payrun_d72ac493-2644-4824-a110-380b86314be5"];
+const defaultEmployerIds = [
+  "er_369feceb-bfb1-484b-b966-0a31fad6de3c",
+  "er_ea769d6a-6b9f-425b-8b09-94f7c6762887",
+];
+
 async function main() {
   try {
-    log('Starting data fetch process...');
+    const command = process.argv[2];
 
-    const payrollRunIds = [
-      'payrun_04288914-0610-47e3-b1ed-4a5d78654323',
-      'payrun_2abfbae7-8334-4fbe-a0bf-0f3bfe10a85d',
-    ];
-    const allRecords = [];
-
-    for (const payrollRunId of payrollRunIds) {
-      const modernTreasuryParams: FetchPaymentOrdersParams = {
-        per_page: 100,
-        'metadata[payrollRunId]': payrollRunId
-      };
-      const paymentOrders = await fetchPaymentOrders(
-        process.env.MODERN_TREASURY_USERNAME!,
-        process.env.MODERN_TREASURY_PASSWORD!,
-        modernTreasuryParams
-      );
-
-      log(`Retrieved ${paymentOrders.length} payment orders from Modern Treasury for payrollRunId: ${payrollRunId}`);
-
-      for (const [index, order] of paymentOrders.entries()) {
-        log(`Processing payment order ${index + 1}/${paymentOrders.length}`);
-        logDebug('Payment Order ID:', order.id, ', Amount:', order.amount, ', Direction:', order.direction);
-
-        const achTransferId = extractACHTransferId(order);
-        log('Found ACH Transfer ID:', achTransferId);
-
-        if (achTransferId) {
-          log('Fetching Increase data for ACH Transfer ID:', achTransferId);
-          const increaseData = await fetchACHTransfer(
-            process.env.INCREASE_API_KEY!,
-            achTransferId
-          );
-          logDebug('ACH Transfer ID:', increaseData.id, ', Amount:', increaseData.amount, ', Transaction ID:', increaseData.transaction_id);
-
-          allRecords.push({
-            payroll_run_id: payrollRunId,
-            direction: order.direction,
-            effective_date: order.effective_date,
-            amount: paymentOrders[index].amount,
-            transaction_id: increaseData.transaction_id
-          });
-          log('Added record with transaction ID:', increaseData.transaction_id);
-        } else {
-          log('No ACH Transfer ID found for this payment order, skipping...');
-        }
-      }
+    if (!command) {
+      log("No command specified. Available commands:");
+      log("  get-increase-transaction <payroll-run-ids>");
+      log("  get-employer-info");
+      return;
     }
 
-    log(`Writing ${allRecords.length} records to CSV...`);
+    log(`Starting process for command: ${command}`);
 
-    const csvWriter = createObjectCsvWriter({
-      path: 'output.csv',
-      header: [
-        { id: 'payroll_run_id', title: 'Payroll run ID' },
-        { id: 'direction', title: 'Direction' },
-        { id: 'effective_date', title: 'Transaction date' },
-        { id: 'amount', title: 'Amount' },
-        { id: 'transaction_id', title: 'Transaction ID' }
-      ]
-    });
+    switch (command) {
+      case "get-increase-transaction": {
+        const payrollRunIds = process.argv.slice(3);
 
-    await csvWriter.writeRecords(allRecords);
-    log('Data has been written to output.csv');
-    log('Process completed successfully!');
+        if (payrollRunIds.length === 0) {
+          log("No payroll run IDs provided. Using default list.");
+          // Default payroll run IDs if none provided
+          await getIncreaseTransactions(defaultPayrollRunIds);
+        } else {
+          log(`Processing ${payrollRunIds.length} payroll run IDs`);
+          await getIncreaseTransactions(payrollRunIds);
+        }
+        break;
+      }
+
+      case "get-employer-info": {
+        const employerIds = process.argv.slice(3);
+
+        if (employerIds.length === 0) {
+          log("No employer IDs provided. Using default list.");
+          // Default payroll run IDs if none provided
+          await getEmployerInfo(defaultEmployerIds);
+        } else {
+          log(`Processing ${employerIds.length} employer IDs`);
+          await getEmployerInfo(employerIds);
+        }
+        break;
+      }
+
+      default:
+        log(`Unknown command: ${command}`);
+        log("Available commands:");
+        log("  get-increase-transaction <payroll-run-ids>");
+        log("  get-employer-info");
+    }
+
+    log("Process completed successfully!");
   } catch (error) {
-    logError('An error occurred:', error);
+    logError("An error occurred:", error);
     process.exit(1);
   }
 }

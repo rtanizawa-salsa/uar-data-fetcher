@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "es2016",
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
@@ -11,4 +11,4 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
-} 
+}

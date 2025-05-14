@@ -5,7 +5,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc && node dist/index.js"
+    "dev": "ts-node src/index.ts",
+    "get-increase-transaction": "ts-node src/index.ts get-increase-transaction",
+    "get-employer-info": "ts-node src/index.ts get-employer-info"
   },
   "keywords": [],
   "author": "",
@@ -15,9 +17,12 @@
     "axios": "^1.6.7",
     "csv-writer": "^1.6.0",
     "dotenv": "^16.4.5",
+    "neo4j-driver": "^5.15.0",
+    "pg": "^8.11.3",
     "typescript": "^5.3.3"
   },
   "devDependencies": {
-    "@types/node": "^20.11.24"
+    "@types/node": "^20.11.24",
+    "@types/pg": "^8.15.1"
   }
 }
