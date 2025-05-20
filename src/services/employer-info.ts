@@ -1,6 +1,6 @@
 import { createObjectCsvWriter } from "csv-writer";
 import { log, logError } from "../utils/logger";
-import { fetchEmployerById } from "../integrations/salsa";
+import { fetchEmployerById } from "../integrations/salsa-graphql";
 
 export async function getEmployerInfo(employerIds: string[]): Promise<void> {
   log("Starting data fetch process for Employers...");

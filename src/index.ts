@@ -1,13 +1,13 @@
 import * as dotenv from "dotenv";
 import { log, logError } from "./utils/logger";
-import { getIncreaseTransactions, getEmployerInfo } from "./services";
+import { getIncreaseTransactions, getEmployerInfo, getEmployerBankInfo } from "./services";
 
 dotenv.config();
 
 const defaultPayrollRunIds = ["payrun_d72ac493-2644-4824-a110-380b86314be5"];
 const defaultEmployerIds = [
   "er_369feceb-bfb1-484b-b966-0a31fad6de3c",
-  "er_ea769d6a-6b9f-425b-8b09-94f7c6762887",
+  "er_ea769d6a-6b9f-425b-8b09-94f7c6762887"
 ];
 
 async function main() {
@@ -18,6 +18,7 @@ async function main() {
       log("No command specified. Available commands:");
       log("  get-increase-transaction <payroll-run-ids>");
       log("  get-employer-info");
+      log("  get-employer-bank-info");
       return;
     }
 
@@ -52,11 +53,25 @@ async function main() {
         break;
       }
 
+      case "get-employer-bank-info": {
+        const employerIds = process.argv.slice(3);
+
+        if (employerIds.length === 0) {
+          log("No employer IDs provided. Using default list.");
+          await getEmployerBankInfo(defaultEmployerIds);
+        } else {
+          log(`Processing ${employerIds.length} employer IDs`);
+          await getEmployerBankInfo(employerIds);
+        }
+        break;
+      }
+
       default:
         log(`Unknown command: ${command}`);
         log("Available commands:");
         log("  get-increase-transaction <payroll-run-ids>");
         log("  get-employer-info");
+        log("  get-employer-bank-info");
     }
 
     log("Process completed successfully!");
