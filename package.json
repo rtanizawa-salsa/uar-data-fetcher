@@ -8,7 +8,8 @@
     "dev": "ts-node src/index.ts",
     "get-increase-transaction": "ts-node src/index.ts get-increase-transaction",
     "get-employer-info": "ts-node src/index.ts get-employer-info",
-    "get-employer-bank-info": "ts-node src/index.ts get-employer-bank-info"
+    "get-employer-bank-info": "ts-node src/index.ts get-employer-bank-info",
+    "get-worker-bank-info": "ts-node src/index.ts get-worker-bank-info"
   },
   "keywords": [],
   "author": "",

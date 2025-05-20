@@ -1,6 +1,11 @@
 import * as dotenv from "dotenv";
 import { log, logError } from "./utils/logger";
-import { getIncreaseTransactions, getEmployerInfo, getEmployerBankInfo } from "./services";
+import { 
+  getIncreaseTransactions, 
+  getEmployerInfo, 
+  getEmployerBankInfo, 
+  getWorkerBankInfo 
+} from "./services";
 
 dotenv.config();
 
@@ -19,6 +24,7 @@ async function main() {
       log("  get-increase-transaction <payroll-run-ids>");
       log("  get-employer-info");
       log("  get-employer-bank-info");
+      log("  get-worker-bank-info");
       return;
     }
 
@@ -65,6 +71,19 @@ async function main() {
         }
         break;
       }
+      
+      case "get-worker-bank-info": {
+        const employerIds = process.argv.slice(3);
+
+        if (employerIds.length === 0) {
+          log("No employer IDs provided. Using default list.");
+          await getWorkerBankInfo(defaultEmployerIds);
+        } else {
+          log(`Processing ${employerIds.length} employer IDs`);
+          await getWorkerBankInfo(employerIds);
+        }
+        break;
+      }
 
       default:
         log(`Unknown command: ${command}`);
@@ -72,6 +91,7 @@ async function main() {
         log("  get-increase-transaction <payroll-run-ids>");
         log("  get-employer-info");
         log("  get-employer-bank-info");
+        log("  get-worker-bank-info");
     }
 
     log("Process completed successfully!");

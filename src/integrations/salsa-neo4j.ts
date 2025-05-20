@@ -19,6 +19,17 @@ export interface EmployerBankAccount {
   isDeleted: boolean;
 }
 
+export interface WorkerBankAccount {
+  employerId: string;
+  workerId: string;
+  bankName: string;
+  accountNumber: string;
+  routingNumber: string;
+  partyName: string;
+  createdDate: string;
+  isDeleted: boolean;
+}
+
 export interface AuthorizerInfo {
   entityId: string;
   authorizerFirstName: string;
@@ -245,5 +256,72 @@ export async function fetchAuthorizerInfoBatch(employerBankAccountIds: string[])
   } catch (error) {
     logError(`Error fetching authorizer info in batch:`, error);
     return new Map(); // Return empty map instead of throwing to avoid breaking the main process
+  }
+}
+
+/**
+ * Fetch active worker bank accounts for employer(s)
+ */
+async function fetchActiveWorkerBankAccounts(employerIds: string[]): Promise<WorkerBankAccount[]> {
+  const cypher = `
+    MATCH(wba:WorkerBankAccount)-[]-(wc:WorkerCounterparty)
+    WHERE wc.employerId in $employerIds
+    RETURN wc.employerId as employerId, wc.workerId as workerId, wba.createdDate as createdDate, 
+           wba.bankName as bankName, wba.accountNumber as accountNumber, wba.routingNumber as routingNumber, 
+           wba.partyName as partyName
+    ORDER BY wc.employerId, wc.workerId, wba.bankName, wba.createdDate
+  `;
+
+  const results = await executeNeo4jQuery<WorkerBankAccount>(cypher, { employerIds });
+  return results.map(account => ({
+    ...account,
+    isDeleted: false
+  }));
+}
+
+/**
+ * Fetch deleted worker bank accounts for employer(s)
+ */
+async function fetchDeletedWorkerBankAccounts(employerIds: string[]): Promise<WorkerBankAccount[]> {
+  const cypher = `
+    MATCH(wba:DeletedWorkerBankAccount)-[]-(wc:WorkerCounterparty)
+    WHERE wc.employerId in $employerIds
+    RETURN wc.employerId as employerId, wc.workerId as workerId, wba.createdDate as createdDate, 
+           wba.bankName as bankName, wba.accountNumber as accountNumber, wba.routingNumber as routingNumber, 
+           wba.partyName as partyName
+    ORDER BY wc.employerId, wc.workerId, wba.bankName, wba.createdDate
+  `;
+
+  const results = await executeNeo4jQuery<WorkerBankAccount>(cypher, { employerIds });
+  return results.map(account => ({
+    ...account,
+    isDeleted: true
+  }));
+}
+
+/**
+ * Fetch all worker bank accounts (active and deleted) for specified employers
+ */
+export async function fetchWorkerBankAccounts(employerIds: string[]): Promise<WorkerBankAccount[]> {
+  if (!employerIds || employerIds.length === 0) {
+    throw new Error("At least one employer ID is required");
+  }
+
+  log(`Fetching worker bank accounts for ${employerIds.length} employer(s)`);
+  
+  try {
+    // Fetch both active and deleted bank accounts
+    const [activeAccounts, deletedAccounts] = await Promise.all([
+      fetchActiveWorkerBankAccounts(employerIds),
+      fetchDeletedWorkerBankAccounts(employerIds)
+    ]);
+
+    const allAccounts = [...activeAccounts, ...deletedAccounts];
+    log(`Found ${allAccounts.length} worker bank accounts (${activeAccounts.length} active, ${deletedAccounts.length} deleted)`);
+    
+    return allAccounts;
+  } catch (error) {
+    logError(`Error fetching worker bank accounts for employers:`, error);
+    throw error;
   }
 } 

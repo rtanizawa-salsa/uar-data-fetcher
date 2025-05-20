@@ -1,11 +1,10 @@
 import { createObjectCsvWriter } from "csv-writer";
-import { log, logDebug, logError } from "../utils/logger";
+import { log, logError } from "../utils/logger";
 import { 
   fetchEmployerBankAccounts, 
   closeNeo4jConnection, 
   fetchAuthorizerInfoBatch 
 } from "../integrations/salsa-neo4j";
-import { fetchEmployerById } from "../integrations/salsa-graphql";
 
 export async function getEmployerBankInfo(employerIds: string[]): Promise<void> {
   log("Starting data fetch process for Employer Bank Accounts...");
@@ -14,9 +13,6 @@ export async function getEmployerBankInfo(employerIds: string[]): Promise<void> 
   try {
     for (const employerId of employerIds) {
       try {
-        log(`Fetching employer data from Salsa API for ${employerId}...`);
-        // const employerInfo = await fetchEmployerById(employerId);
-        
         log(`Fetching bank account data from Neo4j for ${employerId}...`);
         const bankAccounts = await fetchEmployerBankAccounts(employerId);
         
