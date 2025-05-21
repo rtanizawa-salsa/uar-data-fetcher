@@ -4,15 +4,15 @@ import {
   getIncreaseTransactions, 
   getEmployerInfo, 
   getEmployerBankInfo, 
-  getWorkerBankInfo 
+  getWorkerBankInfo,
+  getWorkerInfo
 } from "./services";
 
 dotenv.config();
 
-const defaultPayrollRunIds = ["payrun_d72ac493-2644-4824-a110-380b86314be5"];
+const defaultPayrollRunIds = ["payrun_b1e94c03-3e7a-433c-8de0-c11da396bc02"];
 const defaultEmployerIds = [
-  "er_369feceb-bfb1-484b-b966-0a31fad6de3c",
-  "er_ea769d6a-6b9f-425b-8b09-94f7c6762887"
+  "er_0eb7d20d-e488-4325-9173-6ffd821763ae"
 ];
 
 async function main() {
@@ -25,12 +25,35 @@ async function main() {
       log("  get-employer-info");
       log("  get-employer-bank-info");
       log("  get-worker-bank-info");
+      log("  get-worker-info [--worker-id] <ids...>");
+      log("  run-all");
       return;
     }
 
     log(`Starting process for command: ${command}`);
 
     switch (command) {
+      case "run-all": {
+        log("Running all commands with default values");
+        
+        log("1. Running get-increase-transaction");
+        await getIncreaseTransactions(defaultPayrollRunIds);
+        
+        log("2. Running get-employer-info");
+        await getEmployerInfo(defaultEmployerIds);
+        
+        log("3. Running get-employer-bank-info");
+        await getEmployerBankInfo(defaultEmployerIds);
+        
+        log("4. Running get-worker-bank-info");
+        await getWorkerBankInfo(defaultEmployerIds);
+        
+        log("5. Running get-worker-info");
+        await getWorkerInfo(defaultEmployerIds, "employer");
+        
+        break;
+      }
+      
       case "get-increase-transaction": {
         const payrollRunIds = process.argv.slice(3);
 
@@ -85,6 +108,30 @@ async function main() {
         break;
       }
 
+      case "get-worker-info": {
+        const args = process.argv.slice(3);
+        const isWorkerIdMode = args[0] === "--worker-id";
+        
+        // If --worker-id flag is present, skip it for actual IDs
+        const ids = isWorkerIdMode ? args.slice(1) : args;
+        const idType = isWorkerIdMode ? "worker" : "employer";
+        
+        if (ids.length === 0) {
+          if (idType === "worker") {
+            log("No worker IDs provided.");
+            log("Usage: get-worker-info --worker-id <worker-id1> <worker-id2> ...");
+            return;
+          } else {
+            log("No employer IDs provided. Using default list.");
+            await getWorkerInfo(defaultEmployerIds, "employer");
+          }
+        } else {
+          log(`Processing ${ids.length} ${idType} IDs`);
+          await getWorkerInfo(ids, idType);
+        }
+        break;
+      }
+
       default:
         log(`Unknown command: ${command}`);
         log("Available commands:");
@@ -92,6 +139,8 @@ async function main() {
         log("  get-employer-info");
         log("  get-employer-bank-info");
         log("  get-worker-bank-info");
+        log("  get-worker-info [--worker-id] <ids...>");
+        log("  run-all");
     }
 
     log("Process completed successfully!");
